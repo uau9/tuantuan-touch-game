@@ -1,0 +1,10 @@
+{
+  "name": "团团碰碰乐",
+  "short_name": "团团碰碰乐",
+  "description": "给宠物团团玩的 iPad 触屏小游戏",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#07172e",
+  "theme_color": "#07172e",
+  "orientation": "any"
+}

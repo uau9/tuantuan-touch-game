@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+    <meta name="theme-color" content="#07172e" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="团团碰碰乐" />
+    <title>团团碰碰乐</title>
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="stylesheet" href="styles.css?v=12" />
+  </head>
+  <body>
+    <main id="app">
+      <canvas id="game" aria-label="给宠物玩的触屏游戏区"></canvas>
+
+      <header id="hud" class="hud" aria-label="游戏状态">
+        <div class="score-pill"><span>碰到</span><strong id="score">0</strong><span>次</span></div>
+        <button id="pauseButton" class="hold-button" aria-label="长按暂停">长按暂停</button>
+      </header>
+
+      <section id="startScreen" class="panel visible" aria-labelledby="gameTitle">
+        <div class="logo-fish" aria-hidden="true">
+          <span class="logo-eye"></span><span class="logo-tail"></span>
+        </div>
+        <p class="eyebrow">给灰色小泰迪团团玩的游戏</p>
+        <h1 id="gameTitle">团团碰碰乐</h1>
+        <p class="intro">灰色泰迪会从不同方向进入，真实地行走、奔跑和跳跃。<br />团团碰中后，小狗就会“嘭”地消失！</p>
+
+        <div class="settings" aria-label="游戏设置">
+          <fieldset>
+            <legend>目标</legend>
+            <div class="segmented four">
+              <label><input type="radio" name="theme" value="mix" /><span>混合</span></label>
+              <label><input type="radio" name="theme" value="fish" /><span>小鱼</span></label>
+              <label><input type="radio" name="theme" value="ball" /><span>小球</span></label>
+              <label><input type="radio" name="theme" value="dog" checked /><span>小狗</span></label>
+            </div>
+          </fieldset>
+          <fieldset>
+            <legend>速度</legend>
+            <div class="segmented three">
+              <label><input type="radio" name="speed" value="slow" checked /><span>慢速</span></label>
+              <label><input type="radio" name="speed" value="normal" /><span>中速</span></label>
+              <label><input type="radio" name="speed" value="fast" /><span>快速</span></label>
+            </div>
+          </fieldset>
+          <fieldset>
+            <legend>声音</legend>
+            <div class="segmented">
+              <label><input type="radio" name="sound" value="on" checked /><span>真实犬吠</span></label>
+              <label><input type="radio" name="sound" value="off" /><span>静音</span></label>
+            </div>
+          </fieldset>
+          <fieldset class="volume-field">
+            <legend>音量 <output id="volumeValue" for="volumeSlider">90%</output></legend>
+            <input id="volumeSlider" class="volume-slider" type="range" min="0" max="100" step="5" value="90" aria-label="音效音量" />
+          </fieldset>
+        </div>
+
+        <button id="startButton" class="primary-button">开始玩</button>
+        <p class="small-note">半写实逐帧动画 · 每次一只 · 八个进出方向</p>
+      </section>
+
+      <section id="pauseScreen" class="panel compact" aria-labelledby="pauseTitle">
+        <p class="eyebrow">游戏暂停</p>
+        <h2 id="pauseTitle">团团休息一下</h2>
+        <div class="pause-actions">
+          <button id="resumeButton" class="primary-button">继续玩</button>
+          <button id="homeButton" class="secondary-button">返回设置</button>
+        </div>
+      </section>
+
+      <div id="touchRipple" class="touch-ripple" aria-hidden="true"></div>
+    </main>
+    <script src="game.js?v=12"></script>
+  </body>
+</html>
