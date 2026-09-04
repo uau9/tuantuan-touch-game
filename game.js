@@ -13,13 +13,11 @@
   };
 
   const dogBarkFiles = [
-    "assets/audio/bark-small-real.mp3?v=12",
-    "assets/audio/bark-dog-real.mp3?v=12",
-    "assets/audio/bark-labrador-real.mp3?v=12",
+    "assets/audio/bark-small-real.mp3?v=13",
   ];
   const dogSpriteSheet = new Image();
   dogSpriteSheet.decoding = "async";
-  dogSpriteSheet.src = "assets/dog-sprites/gray-poodle-v1.png?v=12";
+  dogSpriteSheet.src = "assets/dog-sprites/gray-poodle-v1.png?v=13";
   const dogFallbackStyle = {
     coat: "#d6dce3", light: "#f8f7eb", patch: "#65738a",
     dark: "#13233d", accent: "#ffe052", kind: "poodle",
@@ -27,12 +25,12 @@
   const dogRoutes = [
     ["left", "right", 0.76, 0.36],
     ["right", "left", 0.34, 0.7],
-    ["top", "right", 0.18, 0.66],
-    ["right", "bottom", 0.24, 0.28],
-    ["bottom", "left", 0.78, 0.43],
-    ["left", "top", 0.58, 0.76],
-    ["top", "bottom", 0.72, 0.28],
-    ["bottom", "top", 0.28, 0.38],
+    ["left", "right", 0.27, 0.58],
+    ["right", "left", 0.74, 0.43],
+    ["left", "right", 0.48, 0.7],
+    ["right", "left", 0.56, 0.26],
+    ["left", "right", 0.63, 0.32],
+    ["right", "left", 0.28, 0.61],
   ];
   const TAU = Math.PI * 2;
   const targets = [];
@@ -53,9 +51,7 @@
   let dogBarkLoadPromise = null;
   let activeBarkSource = null;
   let dogRouteIndex = -1;
-  let dogBarkIndex = -1;
   let dogRespawnTimer = null;
-  let dogBarkTimer = null;
   let lastTime = performance.now();
   let ambientTime = 0;
   let nextTargetId = 1;
@@ -120,15 +116,7 @@
       loadDogBarks();
     }
     spawnInitialTargets();
-    if (theme === "dog") {
-      if (soundOn) {
-        window.setTimeout(() => {
-          const dog = targets.find((target) => target.type === "dog");
-          if (state === "playing" && dog) playDogBark(dog.x, dog.barkIndex);
-        }, 320);
-      }
-      scheduleDogBark();
-    } else if (soundOn) {
+    if (theme !== "dog" && soundOn) {
       playStartSound();
     }
     lastTime = performance.now();
@@ -140,7 +128,6 @@
     ui.hud.classList.remove("playing");
     ui.pauseScreen.classList.add("visible");
     window.clearTimeout(dogRespawnTimer);
-    window.clearTimeout(dogBarkTimer);
     stopActiveBark();
   }
 
@@ -151,7 +138,6 @@
     ui.hud.classList.add("playing");
     if (theme === "dog") {
       if (!targets.some((target) => target.type === "dog")) spawnDogTarget(false);
-      scheduleDogBark();
     }
     lastTime = performance.now();
   }
@@ -161,23 +147,10 @@
     targets.length = 0;
     particles.length = 0;
     window.clearTimeout(dogRespawnTimer);
-    window.clearTimeout(dogBarkTimer);
     stopActiveBark();
     ui.pauseScreen.classList.remove("visible");
     ui.hud.classList.remove("playing");
     ui.startScreen.classList.add("visible");
-  }
-
-  function scheduleDogBark() {
-    window.clearTimeout(dogBarkTimer);
-    if (!soundOn || state !== "playing" || theme !== "dog") return;
-    const baseDelay = speedMode === "fast" ? 3300 : speedMode === "normal" ? 4300 : 5400;
-    dogBarkTimer = window.setTimeout(() => {
-      if (state !== "playing" || theme !== "dog") return;
-      const dog = targets.find((target) => target.type === "dog");
-      if (dog) playDogBark(dog.x, dog.barkIndex);
-      scheduleDogBark();
-    }, baseDelay + Math.random() * 2200);
   }
 
   function spawnInitialTargets() {
@@ -246,18 +219,23 @@
   function spawnDogTarget(announce = true) {
     if (targets.some((target) => target.type === "dog")) return;
     dogRouteIndex = (dogRouteIndex + 1) % dogRoutes.length;
-    dogBarkIndex = (dogBarkIndex + 1) % dogBarkFiles.length;
     const route = dogRoutes[dogRouteIndex];
     const shortSide = Math.min(width, height);
-    const radius = clamp(Math.min(shortSide * 0.135, width * 0.11), 58, 112);
+    const radius = clamp(Math.min(shortSide * 0.15, width * 0.125), 64, 124);
+    const jumpStart = 0.44 + Math.random() * 0.1;
     const target = {
       id: nextTargetId++, type: "dog", radius,
       extentX: radius * 1.68, extentY: radius * 1.48,
       route, routeProgress: 0, duration: 1,
       x: 0, y: 0, vx: 0, vy: 0,
       color: "#ffe052", accent: "#46baff",
-      barkIndex: dogBarkIndex, phase: 0, age: 0,
-      scale: 0.72, rotation: 0, action: "walk", jumpOffset: 0, jumpProgress: 0, barkTime: 0,
+      barkIndex: 0, phase: 0, age: 0, opacity: 1,
+      scale: 0.78, rotation: 0, action: "walk",
+      jumpStart, jumpEnd: jumpStart + 0.18, jumpOffset: 0, jumpProgress: 0,
+      routeArc: (Math.random() < 0.5 ? -1 : 1) * radius * (0.3 + Math.random() * 0.35),
+      depthScale: 0.07 + Math.random() * 0.06,
+      greeted: false, reacting: false, hitDisabled: false, reactionLift: 0,
+      announce,
     };
     const start = edgePoint(route[0], route[2], target);
     const end = edgePoint(route[1], route[3], target);
@@ -268,22 +246,21 @@
     target.vx = (end.x - start.x) / target.duration;
     target.vy = (end.y - start.y) / target.duration;
     targets.push(target);
-    scheduleDogBark();
-    if (announce && soundOn) {
-      window.setTimeout(() => {
-        if (state === "playing" && targets.includes(target)) playDogBark(target.x, target.barkIndex);
-      }, 240);
-    }
+  }
+
+  function removeDogAndRespawn(target, minimumDelay = 0) {
+    const index = targets.indexOf(target);
+    if (index >= 0) targets.splice(index, 1);
+    window.clearTimeout(dogRespawnTimer);
+    const settings = speedSettings();
+    const delay = Math.max(minimumDelay, settings.dogPause + Math.random() * settings.dogPauseSpread);
+    dogRespawnTimer = window.setTimeout(() => {
+      if (state === "playing" && theme === "dog") spawnDogTarget(true);
+    }, delay);
   }
 
   function finishDogRoute(target) {
-    const index = targets.indexOf(target);
-    if (index >= 0) targets.splice(index, 1);
-    window.clearTimeout(dogBarkTimer);
-    window.clearTimeout(dogRespawnTimer);
-    dogRespawnTimer = window.setTimeout(() => {
-      if (state === "playing" && theme === "dog") spawnDogTarget(true);
-    }, Math.max(300, speedSettings().respawn));
+    removeDogAndRespawn(target);
   }
 
   function keepOnScreen(target) {
@@ -308,7 +285,30 @@
       target.age += dt;
       if (target.type === "dog") {
         target.barkTime = Math.max(0, target.barkTime - dt);
-        target.routeProgress += dt / target.duration;
+        if (target.reacting) {
+          target.reactionAge += dt;
+          const reactionProgress = clamp(target.reactionAge / 0.52, 0, 1);
+          const escapeProgress = reactionProgress * reactionProgress;
+          target.reactionLift = Math.sin(reactionProgress * Math.PI) * target.radius * 0.72;
+          target.x = target.reactionStartX + target.reactionDirection * target.escapeDistance * escapeProgress;
+          target.y = target.reactionStartY - target.reactionLift;
+          target.vx = target.reactionDirection * speedSettings().dogMove * 2.8;
+          target.vy = -Math.cos(reactionProgress * Math.PI) * target.radius * 2.4;
+          target.phase += dt * 13;
+          target.scale = target.reactionStartScale * (1 - reactionProgress * 0.08);
+          target.opacity = 1 - clamp((reactionProgress - 0.56) / 0.44, 0, 1);
+          target.action = "run";
+          if (reactionProgress >= 1) removeDogAndRespawn(target, 850);
+          return;
+        }
+
+        const currentProgress = target.routeProgress;
+        const observingFirst = currentProgress >= 0.16 && currentProgress < 0.24;
+        const observingSecond = currentProgress >= target.jumpEnd && currentProgress < target.jumpEnd + 0.07;
+        const pace = observingFirst || observingSecond
+          ? 0.52
+          : currentProgress < 0.16 ? 0.86 : currentProgress > 0.74 ? 1.32 : 1.15;
+        target.routeProgress += (dt / target.duration) * pace;
         if (target.routeProgress >= 1) {
           finishDogRoute(target);
           return;
@@ -319,21 +319,31 @@
         const previousX = target.x;
         const previousY = target.y;
         const pathX = start.x + (end.x - start.x) * progress;
-        const pathY = start.y + (end.y - start.y) * progress;
-        const isJumping = progress >= 0.43 && progress <= 0.63;
-        const jumpProgress = isJumping ? (progress - 0.43) / 0.2 : 0;
+        const pathY = start.y + (end.y - start.y) * progress
+          + Math.sin(progress * Math.PI) * target.routeArc;
+        const isObserving = (progress >= 0.16 && progress < 0.24)
+          || (progress >= target.jumpEnd && progress < target.jumpEnd + 0.07);
+        const isJumping = progress >= target.jumpStart && progress <= target.jumpEnd;
+        const jumpProgress = isJumping ? (progress - target.jumpStart) / (target.jumpEnd - target.jumpStart) : 0;
         target.jumpProgress = jumpProgress;
-        target.jumpOffset = isJumping ? Math.sin(jumpProgress * Math.PI) * target.radius * 0.92 : 0;
-        target.action = progress < 0.25 ? "walk" : isJumping ? "jump" : "run";
+        target.jumpOffset = isJumping ? Math.sin(jumpProgress * Math.PI) * target.radius * 0.82 : 0;
+        target.action = isObserving ? "observe" : progress < 0.25 ? "walk" : isJumping ? "jump" : "run";
         target.x = pathX;
         target.y = pathY - target.jumpOffset;
         target.vx = (target.x - previousX) / Math.max(dt, 0.001);
         target.vy = (target.y - previousY) / Math.max(dt, 0.001);
-        const gaitSpeed = target.action === "walk" ? 5.2 : target.action === "jump" ? 8 : 10.4;
+        const gaitSpeed = target.action === "observe" ? 1.2 : target.action === "walk" ? 5.2 : target.action === "jump" ? 8 : 10.4;
         target.phase += dt * gaitSpeed;
         const fade = Math.min(1, progress / 0.075, (1 - progress) / 0.075);
-        target.scale = 0.72 + Math.max(0, fade) * 0.28;
-        target.rotation = clamp(Math.atan2(end.y - start.y, Math.abs(end.x - start.x)) * 0.12, -0.13, 0.13);
+        const breathing = isObserving ? Math.sin(target.age * 2.7) * 0.014 : 0;
+        target.scale = 0.78 + Math.max(0, fade) * 0.22
+          + Math.sin(progress * Math.PI) * target.depthScale + breathing;
+        const tangentY = (end.y - start.y) + Math.cos(progress * Math.PI) * Math.PI * target.routeArc;
+        target.rotation = clamp(Math.atan2(tangentY, Math.abs(end.x - start.x)) * 0.15, -0.11, 0.11);
+        if (!target.greeted && progress >= 0.175) {
+          target.greeted = true;
+          if (soundOn) playDogBark(target.x, target.barkIndex);
+        }
         return;
       }
       target.scale = Math.min(1, target.scale + dt * speedSettings().appear);
@@ -379,6 +389,7 @@
     let bestIndex = -1;
     let bestDistance = Infinity;
     targets.forEach((target, index) => {
+      if (target.hitDisabled) return;
       const hitX = target.extentX * 1.05 + 16;
       const hitY = target.extentY * 1.12 + 16;
       const normalizedDistance = Math.hypot((x - target.x) / hitX, (y - target.y) / hitY);
@@ -392,26 +403,30 @@
 
   function popTarget(index, touchX, touchY) {
     const target = targets[index];
-    targets.splice(index, 1);
     score += 1;
     ui.score.textContent = String(score);
-    burst(target, touchX, touchY);
-    if (soundOn) {
-      if (target.type === "dog") playDogBark(target.x, target.barkIndex);
-      else playCatchSound(target.type, target.x);
-    }
     if (navigator.vibrate) navigator.vibrate(18);
+
     if (target.type === "dog") {
-      window.clearTimeout(dogBarkTimer);
-      window.clearTimeout(dogRespawnTimer);
-      dogRespawnTimer = window.setTimeout(() => {
-        if (state === "playing" && theme === "dog") spawnDogTarget(false);
-      }, Math.max(320, speedSettings().respawn));
-    } else {
-      window.setTimeout(() => {
-        if (state === "playing") spawnTarget();
-      }, speedSettings().respawn);
+      target.hitDisabled = true;
+      target.reacting = true;
+      target.reactionAge = 0;
+      target.reactionStartX = target.x;
+      target.reactionStartY = target.y;
+      target.reactionStartScale = target.scale;
+      target.reactionDirection = touchX <= target.x ? 1 : -1;
+      target.escapeDistance = Math.max(width * 0.48, target.extentX * 3.2);
+      target.jumpOffset = 0;
+      if (soundOn) playDogBark(target.x, target.barkIndex);
+      return;
     }
+
+    targets.splice(index, 1);
+    burst(target, touchX, touchY);
+    if (soundOn) playCatchSound(target.type, target.x);
+    window.setTimeout(() => {
+      if (state === "playing") spawnTarget();
+    }, speedSettings().respawn);
   }
 
   function showRipple(x, y) {
@@ -643,27 +658,21 @@
 
   function drawDogBackground() {
     const gradient = ctx.createLinearGradient(0, 0, width, height);
-    gradient.addColorStop(0, "#03132e");
-    gradient.addColorStop(0.56, "#063c68");
-    gradient.addColorStop(1, "#087397");
+    gradient.addColorStop(0, "#010817");
+    gradient.addColorStop(0.6, "#042b4b");
+    gradient.addColorStop(1, "#064d6d");
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, width, height);
 
-    const glow = ctx.createRadialGradient(width * 0.48, height * 0.48, 20, width * 0.48, height * 0.48, Math.max(width, height) * 0.72);
-    glow.addColorStop(0, "rgba(55, 178, 255, 0.18)");
-    glow.addColorStop(1, "rgba(1, 14, 37, 0)");
-    ctx.fillStyle = glow;
-    ctx.fillRect(0, 0, width, height);
-
-    ctx.lineWidth = Math.max(2, Math.min(width, height) * 0.006);
-    for (let i = 0; i < 7; i += 1) {
-      const x = ((i * 0.23 + 0.08) % 1) * width;
-      const y = ((i * 0.37 + 0.14) % 1) * height;
-      const radius = Math.min(width, height) * (0.055 + (i % 3) * 0.018);
-      ctx.strokeStyle = i % 2 ? "rgba(80, 194, 255, 0.13)" : "rgba(255, 226, 82, 0.075)";
-      ctx.beginPath();
-      ctx.arc(x, y, radius, 0, TAU);
-      ctx.stroke();
+    const dog = targets.find((target) => target.type === "dog");
+    if (dog) {
+      const haloRadius = dog.radius * 2.7;
+      const halo = ctx.createRadialGradient(dog.x, dog.y, dog.radius * 0.35, dog.x, dog.y, haloRadius);
+      halo.addColorStop(0, `rgba(255, 224, 82, ${0.13 * (dog.opacity ?? 1)})`);
+      halo.addColorStop(0.5, `rgba(45, 178, 255, ${0.07 * (dog.opacity ?? 1)})`);
+      halo.addColorStop(1, "rgba(1, 8, 23, 0)");
+      ctx.fillStyle = halo;
+      ctx.fillRect(dog.x - haloRadius, dog.y - haloRadius, haloRadius * 2, haloRadius * 2);
     }
 
     const floor = ctx.createLinearGradient(0, height * 0.78, 0, height);
@@ -691,6 +700,7 @@
 
   function drawTarget(target) {
     ctx.save();
+    ctx.globalAlpha = target.opacity ?? 1;
     ctx.translate(target.x, target.y);
     ctx.scale(target.scale, target.scale);
     if (target.type === "dog") {
@@ -721,6 +731,7 @@
     const sourceInset = 12;
     let row = 0;
     let column = Math.floor(target.phase * 1.35) % 4;
+    if (target.action === "observe") column = 1;
     if (target.action === "run") row = 1;
     if (target.action === "jump") {
       row = 2;
@@ -747,20 +758,22 @@
     }
 
     ctx.save();
-    ctx.globalAlpha = clamp(0.32 - target.jumpOffset / (r * 4.5), 0.1, 0.32);
+    const groundLift = target.jumpOffset + (target.reactionLift || 0);
+    ctx.globalAlpha = clamp(0.32 - groundLift / (r * 4.5), 0.1, 0.32);
     ctx.fillStyle = "#020b19";
     ctx.beginPath();
-    ctx.ellipse(0, r * 1.22 + target.jumpOffset, r * 1.16, r * 0.17, 0, 0, TAU);
+    ctx.ellipse(0, r * 1.22 + groundLift, r * 1.16, r * 0.17, 0, 0, TAU);
     ctx.fill();
     ctx.restore();
 
     const drawSize = r * 3.35;
-    ctx.rotate(target.rotation);
+    if (target.action === "observe") ctx.translate(0, Math.sin(target.age * 2.7) * r * 0.012);
+    ctx.rotate(target.rotation + (target.action === "observe" ? Math.sin(target.age * 1.8) * 0.018 : 0));
     ctx.scale(facing, 1);
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = "high";
-    ctx.shadowColor = "rgba(255, 224, 82, 0.34)";
-    ctx.shadowBlur = r * 0.15;
+    ctx.shadowColor = "rgba(255, 224, 82, 0.58)";
+    ctx.shadowBlur = r * 0.21;
     ctx.drawImage(
       dogSpriteSheet,
       sourceX, sourceY, sourceWidth, sourceHeight,
@@ -1156,9 +1169,15 @@
   function clamp(value, min, max) { return Math.min(max, Math.max(min, value)); }
 
   function speedSettings() {
-    if (speedMode === "fast") return { move: 138, dogMove: 215, appear: 7, respawn: 150 };
-    if (speedMode === "normal") return { move: 92, dogMove: 145, appear: 5, respawn: 280 };
-    return { move: 56, dogMove: 95, appear: 3.5, respawn: 460 };
+    if (speedMode === "fast") return {
+      move: 138, dogMove: 215, appear: 7, respawn: 150, dogPause: 650, dogPauseSpread: 500,
+    };
+    if (speedMode === "normal") return {
+      move: 92, dogMove: 145, appear: 5, respawn: 280, dogPause: 850, dogPauseSpread: 650,
+    };
+    return {
+      move: 56, dogMove: 95, appear: 3.5, respawn: 460, dogPause: 1100, dogPauseSpread: 800,
+    };
   }
 
   function loop(now) {
