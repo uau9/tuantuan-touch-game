@@ -211,6 +211,29 @@ legend output {
   box-shadow: 0 4px 12px rgba(28, 63, 103, 0.12);
 }
 
+.dog-colors { gap: 5px; }
+
+.dog-colors span {
+  display: flex;
+  gap: 5px;
+  padding-inline: 5px;
+  font-size: 13px;
+}
+
+.color-dot {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  border: 1px solid rgba(20, 34, 54, 0.22);
+  border-radius: 50%;
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.52);
+}
+
+.color-dot.gray { background: #9999a0; }
+.color-dot.apricot { background: #c97a3d; }
+.color-dot.cream { background: #e7ddc5; }
+.color-dot.brown { background: #70442f; }
+
 .volume-field {
   padding: 3px 3px 0;
 }
@@ -260,6 +283,13 @@ legend output {
 }
 
 .primary-button:active { transform: translateY(4px); box-shadow: 0 3px 0 #d58a18; }
+
+.primary-button:disabled {
+  opacity: 0.72;
+  cursor: wait;
+  transform: none;
+  box-shadow: 0 4px 0 #d58a18;
+}
 
 .secondary-button {
   border: 2px solid #dce4ee;
@@ -330,16 +360,29 @@ legend output {
 }
 
 @media (max-height: 720px) {
-  .panel { width: min(90vw, 760px); padding: 18px 24px 16px; }
+  .panel { width: min(95vw, 960px); padding: 18px 24px 16px; }
   .logo-fish { position: absolute; left: 37px; top: 50%; margin: 0; transform: translateY(-50%); }
-  #startScreen { padding-left: 160px; text-align: left; }
+  #startScreen { padding-left: 175px; text-align: left; }
   h1 { font-size: 39px; }
   .eyebrow { margin-top: 0; }
   .intro { margin: 7px 0 10px; font-size: 14px; }
-  .settings { grid-template-columns: 1.3fr 1fr 1fr 0.8fr; gap: 9px; margin-bottom: 11px; }
+  .settings { grid-template-columns: 1.35fr 1.15fr 1fr; gap: 8px; margin-bottom: 11px; }
+  .settings fieldset:nth-child(5) { grid-column: span 2; }
   .segmented span { min-height: 36px; font-size: 12px; }
+  .dog-colors span { gap: 3px; padding-inline: 3px; font-size: 11px; }
   .primary-button, .secondary-button { min-height: 49px; font-size: 17px; }
   .small-note { margin-top: 9px; }
+}
+
+@media (max-width: 480px) and (min-height: 721px) {
+  .panel { padding: 28px 36px 18px; }
+  .logo-fish { margin-top: -59px; margin-bottom: 9px; }
+  .eyebrow { margin-block: 5px; }
+  .intro { margin: 10px auto 12px; font-size: 15px; }
+  .settings { gap: 8px; margin-bottom: 14px; }
+  .segmented span { min-height: 37px; }
+  .primary-button, .secondary-button { min-height: 56px; }
+  .small-note { margin-top: 10px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

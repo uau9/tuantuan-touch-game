@@ -9,7 +9,7 @@
     <meta name="apple-mobile-web-app-title" content="团团碰碰乐" />
     <title>团团碰碰乐</title>
     <link rel="manifest" href="manifest.webmanifest" />
-    <link rel="stylesheet" href="styles.css?v=13" />
+    <link rel="stylesheet" href="styles.css?v=14" />
   </head>
   <body>
     <main id="app">
@@ -24,9 +24,9 @@
         <div class="logo-fish" aria-hidden="true">
           <span class="logo-eye"></span><span class="logo-tail"></span>
         </div>
-        <p class="eyebrow">给灰色小泰迪团团玩的游戏</p>
+        <p class="eyebrow">给小泰迪团团玩的游戏</p>
         <h1 id="gameTitle">团团碰碰乐</h1>
-        <p class="intro">灰色泰迪会先观察、短叫，再突然跑跳。<br />团团碰中后，小狗会受惊躲开并跑走！</p>
+        <p class="intro">36 帧 3D 泰迪会先观察、短叫，再连续跑跳。<br />团团碰中后，小狗会受惊躲开并跑走！</p>
 
         <div class="settings" aria-label="游戏设置">
           <fieldset>
@@ -36,6 +36,15 @@
               <label><input type="radio" name="theme" value="fish" /><span>小鱼</span></label>
               <label><input type="radio" name="theme" value="ball" /><span>小球</span></label>
               <label><input type="radio" name="theme" value="dog" checked /><span>小狗</span></label>
+            </div>
+          </fieldset>
+          <fieldset id="dogColorField">
+            <legend>小狗毛色</legend>
+            <div class="segmented dog-colors">
+              <label><input type="radio" name="dogColor" value="gray" checked /><span><i class="color-dot gray"></i>灰色</span></label>
+              <label><input type="radio" name="dogColor" value="apricot" /><span><i class="color-dot apricot"></i>杏色</span></label>
+              <label><input type="radio" name="dogColor" value="cream" /><span><i class="color-dot cream"></i>奶油</span></label>
+              <label><input type="radio" name="dogColor" value="brown" /><span><i class="color-dot brown"></i>深棕</span></label>
             </div>
           </fieldset>
           <fieldset>
@@ -60,7 +69,7 @@
         </div>
 
         <button id="startButton" class="primary-button">开始玩</button>
-        <p class="small-note">高对比安静背景 · 每次一只 · 自然停顿与突发运动</p>
+        <p class="small-note">36 帧 3D 连续动作 · 四种毛色 · 每次一只</p>
       </section>
 
       <section id="pauseScreen" class="panel compact" aria-labelledby="pauseTitle">
@@ -74,6 +83,6 @@
 
       <div id="touchRipple" class="touch-ripple" aria-hidden="true"></div>
     </main>
-    <script src="game.js?v=13"></script>
+    <script src="game.js?v=14"></script>
   </body>
 </html>

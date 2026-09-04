@@ -10,18 +10,41 @@
     pauseButton: $("#pauseButton"), resumeButton: $("#resumeButton"),
     homeButton: $("#homeButton"), ripple: $("#touchRipple"),
     volumeSlider: $("#volumeSlider"), volumeValue: $("#volumeValue"),
+    dogColorField: $("#dogColorField"),
   };
 
   const dogBarkFiles = [
-    "assets/audio/bark-small-real.mp3?v=13",
+    "assets/audio/bark-small-real.mp3?v=14",
   ];
-  const dogSpriteSheet = new Image();
-  dogSpriteSheet.decoding = "async";
-  dogSpriteSheet.src = "assets/dog-sprites/gray-poodle-v1.png?v=13";
-  const dogFallbackStyle = {
-    coat: "#d6dce3", light: "#f8f7eb", patch: "#65738a",
-    dark: "#13233d", accent: "#ffe052", kind: "poodle",
+  const dogSpritePaths = {
+    gray: {
+      walk: "assets/dog-sprites/poodle-3d-walk-v2.png?v=14",
+      run: "assets/dog-sprites/poodle-3d-run-v2.png?v=14",
+      jump: "assets/dog-sprites/poodle-3d-jump-v2.png?v=14",
+    },
+    apricot: {
+      walk: "assets/dog-sprites/poodle-3d-apricot-walk-v2.png?v=14",
+      run: "assets/dog-sprites/poodle-3d-apricot-run-v2.png?v=14",
+      jump: "assets/dog-sprites/poodle-3d-apricot-jump-v2.png?v=14",
+    },
+    cream: {
+      walk: "assets/dog-sprites/poodle-3d-cream-walk-v2.png?v=14",
+      run: "assets/dog-sprites/poodle-3d-cream-run-v2.png?v=14",
+      jump: "assets/dog-sprites/poodle-3d-cream-jump-v2.png?v=14",
+    },
+    brown: {
+      walk: "assets/dog-sprites/poodle-3d-brown-walk-v2.png?v=14",
+      run: "assets/dog-sprites/poodle-3d-brown-run-v2.png?v=14",
+      jump: "assets/dog-sprites/poodle-3d-brown-jump-v2.png?v=14",
+    },
   };
+  const dogFallbackStyles = {
+    gray: { coat: "#d6dce3", light: "#f8f7eb", patch: "#65738a" },
+    apricot: { coat: "#c98242", light: "#f2c78d", patch: "#75401f" },
+    cream: { coat: "#ded2b8", light: "#fff6dc", patch: "#91836a" },
+    brown: { coat: "#70442f", light: "#bd8a62", patch: "#35221c" },
+  };
+  const dogSpriteCache = new Map();
   const dogRoutes = [
     ["left", "right", 0.76, 0.36],
     ["right", "left", 0.34, 0.7],
@@ -43,6 +66,7 @@
   let state = "menu";
   let score = 0;
   let theme = "dog";
+  let dogColorMode = "gray";
   let speedMode = "slow";
   let soundOn = true;
   let volumeLevel = 0.9;
@@ -50,6 +74,8 @@
   let dogBarkBuffers = [];
   let dogBarkLoadPromise = null;
   let activeBarkSource = null;
+  let activeDogSprites = null;
+  let startingGame = false;
   let dogRouteIndex = -1;
   let dogRespawnTimer = null;
   let lastTime = performance.now();
@@ -94,15 +120,64 @@
     }
   }
 
+  function loadDogImage(source) {
+    return new Promise((resolve) => {
+      const image = new Image();
+      image.decoding = "async";
+      image.onload = () => resolve(image);
+      image.onerror = () => resolve(null);
+      image.src = source;
+    });
+  }
+
+  function loadDogSpriteSet(color) {
+    if (dogSpriteCache.has(color)) return dogSpriteCache.get(color);
+    const paths = dogSpritePaths[color] || dogSpritePaths.gray;
+    const promise = Promise.all([
+      loadDogImage(paths.walk),
+      loadDogImage(paths.run),
+      loadDogImage(paths.jump),
+    ]).then(([walk, run, jump]) => ({ walk, run, jump }));
+    dogSpriteCache.set(color, promise);
+    return promise;
+  }
+
+  async function selectDogColor(color) {
+    dogColorMode = dogSpritePaths[color] ? color : "gray";
+    const requestedColor = dogColorMode;
+    const sprites = await loadDogSpriteSet(requestedColor);
+    if (dogColorMode === requestedColor) activeDogSprites = sprites;
+  }
+
+  function updateDogColorVisibility() {
+    const selectedTheme = document.querySelector('input[name="theme"]:checked').value;
+    ui.dogColorField.hidden = selectedTheme !== "dog";
+  }
+
   function readSettings() {
     theme = document.querySelector('input[name="theme"]:checked').value;
+    dogColorMode = document.querySelector('input[name="dogColor"]:checked').value;
     speedMode = document.querySelector('input[name="speed"]:checked').value;
     soundOn = document.querySelector('input[name="sound"]:checked').value === "on";
     volumeLevel = Number(ui.volumeSlider.value) / 100;
   }
 
-  function startGame() {
+  async function startGame() {
+    if (startingGame) return;
     readSettings();
+    if (theme === "dog") {
+      startingGame = true;
+      ui.startButton.disabled = true;
+      ui.startButton.textContent = "加载 3D 动作…";
+      let requestedColor;
+      do {
+        requestedColor = dogColorMode;
+        activeDogSprites = await loadDogSpriteSet(requestedColor);
+      } while (requestedColor !== dogColorMode);
+      startingGame = false;
+      ui.startButton.disabled = false;
+      ui.startButton.textContent = "开始玩";
+    }
     score = 0;
     ui.score.textContent = "0";
     targets.length = 0;
@@ -720,7 +795,11 @@
 
   function drawAnimatedDog(target) {
     const r = target.radius;
-    if (!dogSpriteSheet.complete || dogSpriteSheet.naturalWidth === 0) {
+    const action = target.action === "jump"
+      ? "jump"
+      : target.action === "run" ? "run" : "walk";
+    const dogSpriteSheet = activeDogSprites?.[action];
+    if (!dogSpriteSheet || !dogSpriteSheet.complete || dogSpriteSheet.naturalWidth === 0) {
       drawFallbackDog(target);
       return;
     }
@@ -728,34 +807,18 @@
     const facing = target.vx >= 0 ? 1 : -1;
     const frameWidth = dogSpriteSheet.naturalWidth / 4;
     const frameHeight = dogSpriteSheet.naturalHeight / 3;
-    const sourceInset = 12;
-    let row = 0;
-    let column = Math.floor(target.phase * 1.35) % 4;
-    if (target.action === "observe") column = 1;
-    if (target.action === "run") row = 1;
+    const sourceInset = 2;
+    let frameIndex = Math.floor(target.phase * 1.82) % 12;
+    if (target.action === "observe") frameIndex = 0;
     if (target.action === "jump") {
-      row = 2;
-      column = Math.min(3, Math.floor(target.jumpProgress * 4));
+      frameIndex = Math.min(11, Math.floor(target.jumpProgress * 12));
     }
-    let sourceX = column * frameWidth + sourceInset;
-    let sourceWidth = frameWidth - sourceInset * 2;
-    let sourceY = row * frameHeight + sourceInset;
-    let sourceHeight = frameHeight - sourceInset * 2;
-    // The first running cell sits close to the following tail; use the true
-    // transparent gap so neighboring-frame pixels can never flash on screen.
-    if (row === 1 && column === 0) sourceWidth -= 16;
-    if (row === 1 && column === 1) {
-      sourceX -= 24;
-      sourceWidth += 24;
-    }
-    if (row === 1) {
-      sourceY -= sourceInset;
-      sourceHeight -= 28;
-    }
-    if (row === 2) {
-      sourceY -= 60;
-      sourceHeight += 40;
-    }
+    const row = Math.floor(frameIndex / 4);
+    const column = frameIndex % 4;
+    const sourceX = column * frameWidth + sourceInset;
+    const sourceWidth = frameWidth - sourceInset * 2;
+    const sourceY = row * frameHeight + sourceInset;
+    const sourceHeight = frameHeight - sourceInset * 2;
 
     ctx.save();
     const groundLift = target.jumpOffset + (target.reactionLift || 0);
@@ -766,7 +829,7 @@
     ctx.fill();
     ctx.restore();
 
-    const drawSize = r * 3.35;
+    const drawSize = r * 4.08;
     if (target.action === "observe") ctx.translate(0, Math.sin(target.age * 2.7) * r * 0.012);
     ctx.rotate(target.rotation + (target.action === "observe" ? Math.sin(target.age * 1.8) * 0.018 : 0));
     ctx.scale(facing, 1);
@@ -796,7 +859,10 @@
 
   function drawFallbackDog(target) {
     const r = target.radius;
-    const style = dogFallbackStyle;
+    const style = {
+      ...(dogFallbackStyles[dogColorMode] || dogFallbackStyles.gray),
+      dark: "#13233d", accent: "#ffe052", kind: "poodle",
+    };
     const facing = target.vx >= 0 ? 1 : -1;
     const runAmount = target.action === "walk" ? 0.46 : target.action === "jump" ? 0.34 : 0.82;
     const bob = target.action === "walk"
@@ -1222,6 +1288,12 @@
   ui.pauseButton.addEventListener("pointerleave", cancelPauseHold);
   ui.volumeSlider.addEventListener("input", updateVolume);
   ui.volumeSlider.addEventListener("change", previewVolume);
+  document.querySelectorAll('input[name="theme"]').forEach((input) => {
+    input.addEventListener("change", updateDogColorVisibility);
+  });
+  document.querySelectorAll('input[name="dogColor"]').forEach((input) => {
+    input.addEventListener("change", () => selectDogColor(input.value));
+  });
   canvas.addEventListener("pointerdown", handleTouch, { passive: false });
   canvas.addEventListener("contextmenu", (event) => event.preventDefault());
   window.addEventListener("resize", resize);
@@ -1230,6 +1302,7 @@
     if (document.hidden && state === "playing") pauseGame();
   });
 
+  updateDogColorVisibility();
   resize();
   requestAnimationFrame(loop);
 })();

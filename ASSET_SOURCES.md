@@ -4,8 +4,10 @@
 
 ## 小狗逐帧动画
 
-- `assets/dog-sprites/gray-poodle-v1.png`：为本项目生成的灰色玩具贵宾犬透明逐帧素材，4 列 × 3 行，共 12 帧。
-- 第一行为行走循环，第二行为奔跑循环，第三行为起跳、腾空与落地动作。
+- `assets/dog-sprites/poodle-3d-walk-v2.png`、`poodle-3d-run-v2.png`、`poodle-3d-jump-v2.png`：为本项目生成的 3D 玩具贵宾犬动作素材，每张 4 列 × 3 行、12 帧，合计 36 帧。
+- `apricot`、`cream`、`brown` 文件为同一套灰色 3D 动作帧的毛发区域派生色；只重映射低饱和度毛发，保留五官、舌头与蓝黄项圈原色。
+- 原始图像生成结果经过本地背景提取，输出为真实 Alpha 透明 PNG；游戏只加载当前选中的一组 3 张动作图。
+- `assets/dog-sprites/gray-poodle-v1.png` 是上一版 12 帧素材，保留作历史归档，当前游戏不再加载。
 - 游戏在 Canvas 中逐格裁切播放，并按运动方向水平翻转；深蓝背景、黄蓝项圈和轮廓用于增强对比度。
 
 ## 视频
